@@ -498,3 +498,37 @@ dialog h3 { grid-column: span 2; margin: 0 0 4px; color: var(--accent); letter-s
   .form-grid { grid-template-columns: 1fr; }
   .span-2 { grid-column: span 1; }
 }
+
+/* ============ iOS app (Capacitor) polish ============ */
+html { -webkit-tap-highlight-color: transparent; }
+.task-chip, .link-row { -webkit-touch-callout: none; -webkit-user-select: none; }
+
+.haptics-btn { margin-left: auto; font-size: 14px; }
+.haptics-btn.off { opacity: .35; }
+
+/* ghost chip that follows the finger during a touch drag */
+.task-ghost {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 100;
+  width: 150px;
+  pointer-events: none;
+  opacity: .9;
+  transform: translate(-50%, -130%);
+  box-shadow: 0 0 16px var(--accent-glow);
+}
+
+@supports (padding: env(safe-area-inset-top)) {
+  .app-header {
+    padding-top: calc(12px + env(safe-area-inset-top));
+    padding-left: calc(20px + env(safe-area-inset-left));
+    padding-right: calc(20px + env(safe-area-inset-right));
+  }
+  .app-body {
+    padding-left: calc(20px + env(safe-area-inset-left));
+    padding-right: calc(20px + env(safe-area-inset-right));
+    padding-bottom: calc(40px + env(safe-area-inset-bottom));
+  }
+  .toast { bottom: calc(24px + env(safe-area-inset-bottom)); }
+}

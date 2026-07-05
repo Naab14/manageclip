@@ -1,0 +1,20 @@
+{
+  "name": "manageclip",
+  "version": "1.0.0",
+  "description": "Shift Management Dashboard — local-first LSW tracker (web + iOS via Capacitor)",
+  "private": true,
+  "scripts": {
+    "serve": "python3 -m http.server 8000 -d www",
+    "ios": "cap sync ios && cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/filesystem": "^7.0.0",
+    "@capacitor/haptics": "^7.0.0",
+    "@capacitor/ios": "^7.0.0",
+    "@capacitor/share": "^7.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.0.0"
+  }
+}

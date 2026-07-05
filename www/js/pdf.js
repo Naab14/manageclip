@@ -88,8 +88,22 @@
       return out;
     }
 
-    function download(filename) {
-      const blob = new Blob([output()], { type: 'application/pdf' });
+    async function download(filename) {
+      const data = output();
+      const N = window.Native || {};
+      if (N.isNative && N.Filesystem) {
+        // Inside the iOS app: write to cache and hand off to the share sheet.
+        try {
+          const res = await N.Filesystem.writeFile({
+            path: filename,
+            data: btoa(data),
+            directory: 'CACHE'
+          });
+          if (N.Share) await N.Share.share({ title: filename, url: res.uri });
+          return;
+        } catch (e) { /* fall through to the browser download path */ }
+      }
+      const blob = new Blob([data], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
