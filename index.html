@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shift Command // LSW Dashboard</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%23070b09'/%3E%3Ctext x='8' y='12' font-size='10' font-family='monospace' fill='%2300FFB4' text-anchor='middle'%3E%3E_%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<header class="app-header">
+  <h1 class="logo">SHIFT<span class="logo-cursor">_</span>COMMAND</h1>
+  <nav class="main-nav">
+    <button class="nav-btn active" data-view="center">Command Center</button>
+    <button class="nav-btn" data-view="logger">Activity Logger</button>
+    <button class="nav-btn" data-view="links">Link Hub</button>
+    <button class="nav-btn" data-view="review">Weekly Review</button>
+  </nav>
+</header>
+
+<div class="app-body">
+
+  <aside class="sidebar">
+    <div class="sidebar-head">
+      <h2>Quick Action Clipboard</h2>
+      <button class="mini-btn" id="clipboard-manage" title="Configure links">⚙</button>
+    </div>
+    <div id="clipboard-list" class="clipboard-list"></div>
+    <p class="sidebar-empty" id="clipboard-empty" hidden>No links configured yet.<br>Add some in the Link Hub.</p>
+  </aside>
+
+  <main class="content">
+
+    <!-- ============ SHIFT COMMAND CENTER ============ -->
+    <section class="view active" id="view-center">
+      <div class="view-toolbar">
+        <div class="toolbar-group">
+          <button class="btn" id="cal-prev">◀</button>
+          <button class="btn" id="cal-today">Today</button>
+          <button class="btn" id="cal-next">▶</button>
+          <span class="cal-label" id="cal-label"></span>
+        </div>
+        <div class="toolbar-group">
+          <div class="seg-toggle" id="cal-mode">
+            <button class="seg active" data-mode="month">Month</button>
+            <button class="seg" data-mode="week">Week</button>
+          </div>
+          <button class="btn btn-accent" id="task-new">+ New Task</button>
+        </div>
+      </div>
+      <div class="legend">
+        <span class="legend-item"><i class="dot st-overdue"></i>Overdue</span>
+        <span class="legend-item"><i class="dot st-current"></i>In Progress</span>
+        <span class="legend-item"><i class="dot st-finished"></i>Completed</span>
+        <span class="legend-hint">Drag tasks between days to reschedule · Click a task to edit</span>
+      </div>
+      <div id="calendar-grid" class="calendar"></div>
+    </section>
+
+    <!-- ============ ACTIVITY LOGGER ============ -->
+    <section class="view" id="view-logger">
+      <h2 class="view-title">Activity Logger</h2>
+      <form id="log-form" class="panel form-grid">
+        <label>Date
+          <input type="date" name="entry_date" required>
+        </label>
+        <label>Category
+          <select name="category">
+            <option>Safety</option>
+            <option>Quality</option>
+            <option>Delivery</option>
+            <option>Cost</option>
+            <option>People</option>
+            <option>Other</option>
+          </select>
+        </label>
+        <label class="span-2">Entry
+          <textarea name="content" rows="3" placeholder="What happened on shift?" required></textarea>
+        </label>
+        <div class="span-2 form-actions">
+          <button type="submit" class="btn btn-accent">Log Entry</button>
+          <span id="log-feedback" class="feedback" role="status"></span>
+        </div>
+      </form>
+      <h3 class="sub-title">Recent Entries</h3>
+      <div id="log-list" class="log-list"></div>
+    </section>
+
+    <!-- ============ LINK CONFIGURATION HUB ============ -->
+    <section class="view" id="view-links">
+      <h2 class="view-title">Link Configuration Hub</h2>
+      <form id="link-form" class="panel form-grid">
+        <input type="hidden" name="id">
+        <label>URL
+          <input type="url" name="url" placeholder="https://…" required>
+        </label>
+        <label>Display Name
+          <input type="text" name="display_name" placeholder="e.g. Andon Board" required>
+        </label>
+        <label>Icon (emoji or short text)
+          <input type="text" name="icon_reference" maxlength="4" placeholder="e.g. 📋">
+        </label>
+        <label>Display Style
+          <select name="display_mode">
+            <option value="thumbnail">Thumbnail</option>
+            <option value="symbol">Symbol (Icon)</option>
+            <option value="name" selected>Text Label</option>
+          </select>
+        </label>
+        <div class="span-2 form-actions">
+          <button type="submit" class="btn btn-accent" id="link-save">Add Link</button>
+          <button type="button" class="btn" id="link-cancel" hidden>Cancel Edit</button>
+        </div>
+      </form>
+      <h3 class="sub-title">Configured Links <span class="hint">(drag rows or use ▲▼ to reorder)</span></h3>
+      <div id="link-config-list" class="link-config-list"></div>
+    </section>
+
+    <!-- ============ WEEKLY REVIEW DASHBOARD ============ -->
+    <section class="view" id="view-review">
+      <div class="view-toolbar">
+        <div class="toolbar-group">
+          <button class="btn" id="review-prev">◀</button>
+          <button class="btn" id="review-this">This Week</button>
+          <button class="btn" id="review-next">▶</button>
+          <span class="cal-label" id="review-label"></span>
+        </div>
+        <div class="toolbar-group">
+          <label class="inline-label">Weekly target
+            <input type="number" id="review-target" min="1" max="999" value="20">
+          </label>
+          <button class="btn btn-accent" id="review-export">Export to PDF</button>
+        </div>
+      </div>
+      <div id="review-stats" class="stat-grid"></div>
+      <div class="panel progress-panel">
+        <div class="progress-head"><span>Completed vs Target</span><span id="progress-text"></span></div>
+        <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+      </div>
+      <div class="review-columns">
+        <div class="panel">
+          <h3 class="sub-title">Category Breakdown</h3>
+          <table class="data-table" id="review-breakdown"></table>
+        </div>
+        <div class="panel">
+          <h3 class="sub-title">Shift Log Entries</h3>
+          <div id="review-logs" class="log-list compact"></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ============ TASK MODAL ============ -->
+<dialog id="task-modal">
+  <form id="task-form" method="dialog" class="form-grid">
+    <h3 id="task-modal-title">New Task</h3>
+    <input type="hidden" name="id">
+    <label class="span-2">Title
+      <input type="text" name="title" required placeholder="e.g. Gemba walk – Line 2">
+    </label>
+    <label class="span-2">Description
+      <textarea name="description" rows="2" placeholder="Optional details"></textarea>
+    </label>
+    <label>Due Date
+      <input type="date" name="due_date" required>
+    </label>
+    <label>Category
+      <select name="category">
+        <option>Gemba Walk</option>
+        <option>Safety Audit</option>
+        <option>Coaching</option>
+        <option>Meeting</option>
+        <option>Reporting</option>
+        <option>Other</option>
+      </select>
+    </label>
+    <label>Status
+      <select name="status">
+        <option value="current">In Progress</option>
+        <option value="finished">Completed</option>
+      </select>
+    </label>
+    <div class="form-actions modal-actions span-2">
+      <button type="button" class="btn btn-danger" id="task-delete" hidden>Delete</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn" id="task-cancel">Cancel</button>
+      <button type="submit" class="btn btn-accent">Save Task</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast" class="toast" role="status"></div>
+
+<script src="js/storage.js"></script>
+<script src="js/pdf.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
