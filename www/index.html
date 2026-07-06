@@ -21,6 +21,7 @@
     <button class="nav-btn" data-view="links">Link Hub</button>
     <button class="nav-btn" data-view="review">Weekly Review</button>
   </nav>
+  <button class="mini-btn skin-btn" id="skin-toggle" title="Change skin">🎨</button>
   <button class="mini-btn haptics-btn" id="haptics-toggle" title="Toggle haptic feedback">📳</button>
 </header>
 
@@ -197,11 +198,22 @@
   </form>
 </dialog>
 
+<!-- ============ SKIN PICKER ============ -->
+<dialog id="skin-modal" class="skin-modal">
+  <div class="skin-modal-head">
+    <h3>Skins</h3>
+    <button type="button" class="btn" id="skin-close">Close</button>
+  </div>
+  <p class="skin-hint">Pick a face for your command center.</p>
+  <div id="skin-grid" class="skin-grid"></div>
+</dialog>
+
 <div id="toast" class="toast" role="status"></div>
 
 <script src="js/storage.js"></script>
 <script src="js/native.js"></script>
 <script src="js/haptics.js"></script>
+<script src="js/skins.js"></script>
 <script src="js/pdf.js"></script>
 <script src="js/app.js"></script>
 </body>

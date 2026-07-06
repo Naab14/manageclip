@@ -613,11 +613,15 @@
       }
     }
 
-    // Header band
-    pdf.rect(0, 0, MiniPDF.W, 86, '#0d1512');
-    pdf.rect(0, 86, MiniPDF.W, 3, '#00FFB4');
-    pdf.text(M, 40, 'SHIFT_COMMAND // WEEKLY REVIEW', { size: 18, bold: true, color: '#00FFB4' });
-    pdf.text(M, 62, `Week of ${d.startStr} to ${d.endStr}`, { size: 11, color: '#d7e6df' });
+    // Header band in the active skin's colors
+    const skinCss = getComputedStyle(document.documentElement);
+    const accent = skinCss.getPropertyValue('--accent').trim() || '#00FFB4';
+    const band = skinCss.getPropertyValue('--panel').trim() || '#0d1512';
+    const ink = skinCss.getPropertyValue('--text').trim() || '#d7e6df';
+    pdf.rect(0, 0, MiniPDF.W, 86, band);
+    pdf.rect(0, 86, MiniPDF.W, 3, accent);
+    pdf.text(M, 40, 'SHIFT_COMMAND // WEEKLY REVIEW', { size: 18, bold: true, color: accent });
+    pdf.text(M, 62, `Week of ${d.startStr} to ${d.endStr}`, { size: 11, color: ink });
     pdf.text(MiniPDF.W - M - 150, 62, `Generated ${todayStr()}`, { size: 9, color: '#7d948a' });
     y = 120;
 
@@ -646,7 +650,7 @@
     pdf.text(M + 180, y, 'Done', { size: 9, bold: true });
     pdf.text(M + 240, y, 'Planned', { size: 9, bold: true });
     pdf.text(M + 310, y, 'Rate', { size: 9, bold: true });
-    y += 6; pdf.line(M, y, MiniPDF.W - M, y, '#00FFB4', 0.8); y += 14;
+    y += 6; pdf.line(M, y, MiniPDF.W - M, y, accent, 0.8); y += 14;
     const cats = Object.entries(d.cats);
     if (!cats.length) { pdf.text(M, y, 'No tasks scheduled this week.', { size: 10 }); y += 15; }
     cats.forEach(([cat, c]) => {
