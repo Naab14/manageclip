@@ -1,0 +1,10 @@
+{
+  "appId": "com.shiftcommand.manageclip",
+  "appName": "Shift Command",
+  "webDir": "www",
+  "backgroundColor": "#070b09",
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#070b09"
+  }
+}

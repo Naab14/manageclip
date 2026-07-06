@@ -110,19 +110,101 @@
       e.dataTransfer.setData('text/plain', task.id);
       e.dataTransfer.effectAllowed = 'move';
       chip.classList.add('dragging');
+      Haptics.dragStart();
     });
-    chip.addEventListener('dragend', () => chip.classList.remove('dragging'));
+    chip.addEventListener('dragend', () => {
+      chip.classList.remove('dragging');
+      Haptics.dragEnd(false);
+    });
+    const consumeTouchDrag = attachTouchDrag(chip, task);
     chip.addEventListener('click', e => {
+      if (consumeTouchDrag()) return;
       if (e.target.classList.contains('chip-done')) {
         task.status = task.status === 'finished' ? 'current' : 'finished';
         Store.saveTask(task);
         renderCalendar();
+        if (task.status === 'finished') Haptics.notify('SUCCESS'); else Haptics.impact('LIGHT');
         toast(task.status === 'finished' ? 'Task completed ✔' : 'Task reopened');
       } else {
         openTaskModal(task);
       }
     });
     return chip;
+  }
+
+  /* Touch drag-and-drop for task chips - iOS WKWebView doesn't fire HTML5
+     drag events from touch. Long-press (300ms) picks a chip up, a ghost
+     follows the finger, and every calendar cell crossed ticks the haptics. */
+  function attachTouchDrag(chip, task) {
+    let timer = null, dragging = false, ghost = null, lastCell = null;
+    let sx = 0, sy = 0, wasDragged = false;
+
+    function moveGhost(x, y) {
+      ghost.style.left = x + 'px';
+      ghost.style.top = y + 'px';
+    }
+    function cleanup() {
+      clearTimeout(timer);
+      if (ghost) { ghost.remove(); ghost = null; }
+      if (lastCell) { lastCell.classList.remove('drop-target'); lastCell = null; }
+      chip.classList.remove('dragging');
+      dragging = false;
+    }
+
+    chip.addEventListener('touchstart', e => {
+      const t = e.touches[0];
+      sx = t.clientX; sy = t.clientY;
+      wasDragged = false;
+      timer = setTimeout(() => {
+        dragging = true;
+        wasDragged = true;
+        chip.classList.add('dragging');
+        ghost = chip.cloneNode(true);
+        ghost.classList.add('task-ghost');
+        document.body.appendChild(ghost);
+        moveGhost(sx, sy);
+        Haptics.dragStart();
+      }, 300);
+    }, { passive: true });
+
+    chip.addEventListener('touchmove', e => {
+      const t = e.touches[0];
+      if (!dragging) {
+        if (Math.hypot(t.clientX - sx, t.clientY - sy) > 10) clearTimeout(timer);
+        return;
+      }
+      e.preventDefault(); // keep the page from scrolling while dragging
+      moveGhost(t.clientX, t.clientY);
+      const under = document.elementFromPoint(t.clientX, t.clientY);
+      const cell = under && under.closest('.cal-cell');
+      if (cell !== lastCell) {
+        if (lastCell) lastCell.classList.remove('drop-target');
+        if (cell) cell.classList.add('drop-target');
+        lastCell = cell;
+        Haptics.dragMove();
+      }
+    }, { passive: false });
+
+    chip.addEventListener('touchend', () => {
+      const target = dragging && lastCell ? lastCell.dataset.date : null;
+      const moved = !!(target && target !== task.due_date);
+      if (dragging) Haptics.dragEnd(moved);
+      cleanup();
+      if (moved) {
+        task.due_date = target;
+        Store.saveTask(task);
+        renderCalendar();
+        toast(`Rescheduled to ${niceDate(target)}`);
+      }
+    });
+    chip.addEventListener('touchcancel', cleanup);
+
+    /* click fires right after touchend - swallow it once if a drag happened */
+    return function consume() {
+      const v = wasDragged;
+      wasDragged = false;
+      return v;
+    };
   }
 
   function dayCell(dateStr, opts) {
@@ -148,6 +230,7 @@
     cell.addEventListener('dragover', e => {
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
+      if (!cell.classList.contains('drop-target')) Haptics.dragMove();
       cell.classList.add('drop-target');
     });
     cell.addEventListener('dragleave', () => cell.classList.remove('drop-target'));
@@ -159,6 +242,7 @@
       if (task && task.due_date !== dateStr) {
         task.due_date = dateStr;
         Store.saveTask(task);
+        Haptics.dragEnd(true);
         renderCalendar();
         toast(`Rescheduled to ${niceDate(dateStr)}`);
       }
@@ -244,6 +328,7 @@
       category: f.category.value
     });
     renderCalendar();
+    Haptics.notify('SUCCESS');
     toast('Task saved');
   });
   $('#task-cancel').addEventListener('click', () => taskModal.close());
@@ -253,6 +338,7 @@
       Store.deleteTask(id);
       taskModal.close();
       renderCalendar();
+      Haptics.notify('WARNING');
       toast('Task deleted');
     }
   });
@@ -274,6 +360,7 @@
       row.querySelector('.log-del').addEventListener('click', () => {
         Store.deleteLog(log.id);
         renderLogs();
+        Haptics.notify('WARNING');
         toast('Entry deleted');
       });
       list.appendChild(row);
@@ -289,6 +376,7 @@
       content: f.content.value.trim()
     });
     f.content.value = '';
+    Haptics.notify('SUCCESS');
     const fb = $('#log-feedback');
     fb.textContent = '✔ Entry logged';
     fb.classList.add('show');
@@ -320,6 +408,7 @@
     resetLinkForm();
     renderLinkConfig();
     renderClipboard();
+    Haptics.notify('SUCCESS');
     toast('Link saved');
   });
   $('#link-cancel').addEventListener('click', resetLinkForm);
@@ -350,10 +439,10 @@
         `</span>`;
 
       row.querySelector('.lk-up').addEventListener('click', () => {
-        Store.moveLink(link.id, -1); renderLinkConfig(); renderClipboard();
+        Store.moveLink(link.id, -1); Haptics.selection(); renderLinkConfig(); renderClipboard();
       });
       row.querySelector('.lk-down').addEventListener('click', () => {
-        Store.moveLink(link.id, 1); renderLinkConfig(); renderClipboard();
+        Store.moveLink(link.id, 1); Haptics.selection(); renderLinkConfig(); renderClipboard();
       });
       row.querySelector('.lk-edit').addEventListener('click', () => {
         const f = linkForm.elements;
@@ -371,6 +460,7 @@
           Store.deleteLink(link.id);
           renderLinkConfig();
           renderClipboard();
+          Haptics.notify('WARNING');
           toast('Link deleted');
         }
       });
@@ -379,11 +469,17 @@
         dragLinkId = link.id;
         e.dataTransfer.effectAllowed = 'move';
         row.classList.add('dragging');
+        Haptics.dragStart();
       });
-      row.addEventListener('dragend', () => { dragLinkId = null; row.classList.remove('dragging'); });
+      row.addEventListener('dragend', () => {
+        dragLinkId = null;
+        row.classList.remove('dragging');
+        Haptics.dragEnd(false);
+      });
       row.addEventListener('dragover', e => {
         if (!dragLinkId || dragLinkId === link.id) return;
         e.preventDefault();
+        if (!row.classList.contains('drop-target')) Haptics.dragMove();
         row.classList.add('drop-target');
       });
       row.addEventListener('dragleave', () => row.classList.remove('drop-target'));
@@ -392,6 +488,7 @@
         row.classList.remove('drop-target');
         if (dragLinkId && dragLinkId !== link.id) {
           Store.reorderLink(dragLinkId, link.id);
+          Haptics.dragEnd(true);
           renderLinkConfig();
           renderClipboard();
         }
@@ -516,11 +613,15 @@
       }
     }
 
-    // Header band
-    pdf.rect(0, 0, MiniPDF.W, 86, '#0d1512');
-    pdf.rect(0, 86, MiniPDF.W, 3, '#00FFB4');
-    pdf.text(M, 40, 'SHIFT_COMMAND // WEEKLY REVIEW', { size: 18, bold: true, color: '#00FFB4' });
-    pdf.text(M, 62, `Week of ${d.startStr} to ${d.endStr}`, { size: 11, color: '#d7e6df' });
+    // Header band in the active skin's colors
+    const skinCss = getComputedStyle(document.documentElement);
+    const accent = skinCss.getPropertyValue('--accent').trim() || '#00FFB4';
+    const band = skinCss.getPropertyValue('--panel').trim() || '#0d1512';
+    const ink = skinCss.getPropertyValue('--text').trim() || '#d7e6df';
+    pdf.rect(0, 0, MiniPDF.W, 86, band);
+    pdf.rect(0, 86, MiniPDF.W, 3, accent);
+    pdf.text(M, 40, 'SHIFT_COMMAND // WEEKLY REVIEW', { size: 18, bold: true, color: accent });
+    pdf.text(M, 62, `Week of ${d.startStr} to ${d.endStr}`, { size: 11, color: ink });
     pdf.text(MiniPDF.W - M - 150, 62, `Generated ${todayStr()}`, { size: 9, color: '#7d948a' });
     y = 120;
 
@@ -549,7 +650,7 @@
     pdf.text(M + 180, y, 'Done', { size: 9, bold: true });
     pdf.text(M + 240, y, 'Planned', { size: 9, bold: true });
     pdf.text(M + 310, y, 'Rate', { size: 9, bold: true });
-    y += 6; pdf.line(M, y, MiniPDF.W - M, y, '#00FFB4', 0.8); y += 14;
+    y += 6; pdf.line(M, y, MiniPDF.W - M, y, accent, 0.8); y += 14;
     const cats = Object.entries(d.cats);
     if (!cats.length) { pdf.text(M, y, 'No tasks scheduled this week.', { size: 10 }); y += 15; }
     cats.forEach(([cat, c]) => {
@@ -589,6 +690,7 @@
     });
 
     pdf.download(`weekly-review-${d.startStr}.pdf`);
+    Haptics.notify('SUCCESS');
     toast('PDF exported');
   }
 
@@ -601,6 +703,7 @@
   $('#cal-next').addEventListener('click', () => shiftCalendar(1));
   $('#cal-today').addEventListener('click', () => { state.calAnchor = new Date(); renderCalendar(); });
   $$('#cal-mode .seg').forEach(b => b.addEventListener('click', () => {
+    Haptics.impact('MEDIUM');
     state.calMode = b.dataset.mode;
     $$('#cal-mode .seg').forEach(s => s.classList.toggle('active', s === b));
     renderCalendar();
@@ -620,6 +723,18 @@
     renderReview();
   });
   $('#review-export').addEventListener('click', exportReviewPdf);
+
+  const hapticsBtn = $('#haptics-toggle');
+  function syncHapticsBtn() {
+    hapticsBtn.classList.toggle('off', !Haptics.enabled);
+    hapticsBtn.title = Haptics.enabled ? 'Haptic feedback: on' : 'Haptic feedback: off';
+  }
+  hapticsBtn.addEventListener('click', () => {
+    Haptics.setEnabled(!Haptics.enabled);
+    syncHapticsBtn();
+    toast(Haptics.enabled ? 'Haptics on' : 'Haptics off');
+  });
+  syncHapticsBtn();
 
   /* ================= init ================= */
 
